@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Text Improver</title>
+</head>
+
+<body>
+
+<h2>Text Improver</h2>
+
+<textarea id="input" rows="4" cols="60"></textarea>
+
+<br><br>
+
+<button onclick="improve()">Improve</button>
+<button onclick="accept()">Accept</button>
+<button onclick="reject()">Reject</button>
+
+<p id="result"></p>
+
+<script>
+
+let suggestions = []
+let index = 0
+
+async function improve(){
+
+const text = document.getElementById("input").value
+
+const res = await fetch("http://localhost:8000/improve-text",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({text})
+})
+
+const data = await res.json()
+
+suggestions = data.suggestions
+index = 0
+
+document.getElementById("result").innerText = suggestions[index]
+}
+
+function reject(){
+
+index++
+
+if(index < suggestions.length)
+document.getElementById("result").innerText = suggestions[index]
+}
+
+function accept(){
+
+document.getElementById("input").value = suggestions[index]
+}
+
+</script>
+
+</body>
+</html>
