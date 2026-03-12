@@ -9,7 +9,7 @@ TEMPLATES = {
     "family_leave": [
         "I need to take leave today due to a family matter.",
         "I will be unavailable today due to a family commitment.",
-        "I need to attend a family matter today and will be on leave."
+        "I need to attend to a family matter today and will be on leave."
     ],
 
     "meeting_absence": [
@@ -18,6 +18,11 @@ TEMPLATES = {
         "I will not be able to participate in the meeting."
     ]
 }
+
+
+def get_template(intent):
+
+    return TEMPLATES.get(intent)
 
 
 def get_template(intent):

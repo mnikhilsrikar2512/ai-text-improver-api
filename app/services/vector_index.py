@@ -1,57 +1,75 @@
-import faiss
-import numpy as np
 from sentence_transformers import SentenceTransformer
+import numpy as np
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-INTENT_LIBRARY = {
+INTENTS = {
     "sick_leave": [
         "sick leave",
-        "i am sick today",
-        "not feeling well today",
-        "i have fever today"
+        "not feeling well",
+        "fever",
+        "medical leave"
     ],
     "family_leave": [
         "family function",
-        "family commitment",
         "family matter",
-        "need leave for family"
+        "family commitment",
+        "family emergency"
     ],
     "meeting_absence": [
         "cannot attend meeting",
-        "cant attend meeting",
-        "unable to attend meeting",
-        "miss meeting today"
+        "miss meeting",
+        "meeting absence",
+        "unable to join meeting"
     ]
 }
 
-phrases = []
-labels = []
+intent_vectors = {}
 
-for intent, samples in INTENT_LIBRARY.items():
-    for phrase in samples:
-        phrases.append(phrase)
-        labels.append(intent)
+for intent, phrases in INTENTS.items():
+    intent_vectors[intent] = model.encode(phrases)
 
-embeddings = model.encode(phrases)
-embeddings = np.array(embeddings).astype("float32")
+SIMILARITY_THRESHOLD = 0.65
 
-dimension = embeddings.shape[1]
 
-index = faiss.IndexFlatL2(dimension)
-index.add(embeddings)
+def cosine_similarity(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
 def search_intent(text):
 
-    query = model.encode([text]).astype("float32")
+    query_vector = model.encode(text)
 
-    distances, indices = index.search(query, 1)
+    best_intent = None
+    best_score = 0
 
-    score = distances[0][0]
-    intent = labels[indices[0][0]]
+    for intent, vectors in intent_vectors.items():
 
-    if score < 1.2:
-        return intent
+        for vec in vectors:
+
+            score = cosine_similarity(query_vector, vec)
+
+            if score > best_score:
+                best_score = score
+                best_intent = intent
+
+    if best_score >= SIMILARITY_THRESHOLD:
+        return best_intent
 
     return None
+
+
+def learn_new_example(text, intent):
+
+    if intent not in INTENTS:
+        INTENTS[intent] = []
+        intent_vectors[intent] = []
+
+    INTENTS[intent].append(text)
+
+    vector = model.encode(text)
+
+    if isinstance(intent_vectors[intent], list):
+        intent_vectors[intent].append(vector)
+    else:
+        intent_vectors[intent] = np.vstack([intent_vectors[intent], vector])

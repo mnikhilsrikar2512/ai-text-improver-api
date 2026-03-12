@@ -12,7 +12,7 @@ from app.utils.logger import logger
 from app.services.normalizer import normalize_text
 from app.services.deduplicator import deduplicate_suggestions
 from app.services.metrics import increment
-from app.services.vector_index import search_intent
+from app.services.vector_index import search_intent, learn_new_example
 from app.services.template_service import get_template
 
 router = APIRouter()
@@ -32,7 +32,6 @@ async def improve_text(request: ImproveRequest, req: Request):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Garbage detection
     if not is_meaningful(text):
         return {
             "original": text,
@@ -43,9 +42,9 @@ async def improve_text(request: ImproveRequest, req: Request):
 
     cache_key = f"text:{text.lower()}"
 
-    # ---------------------------------------
+    # -----------------------------
     # Exact Cache
-    # ---------------------------------------
+    # -----------------------------
 
     cached = get_cache(cache_key)
 
@@ -64,9 +63,9 @@ async def improve_text(request: ImproveRequest, req: Request):
             "latency_ms": latency
         }
 
-    # ---------------------------------------
-    # Rule Engine (Fastest path)
-    # ---------------------------------------
+    # -----------------------------
+    # Rule Engine
+    # -----------------------------
 
     if not request.force_llm:
 
@@ -92,9 +91,9 @@ async def improve_text(request: ImproveRequest, req: Request):
                 "latency_ms": latency
             }
 
-    # ---------------------------------------
+    # -----------------------------
     # Semantic Cache
-    # ---------------------------------------
+    # -----------------------------
 
     semantic_result = get_semantic_cache(text)
 
@@ -115,9 +114,9 @@ async def improve_text(request: ImproveRequest, req: Request):
             "latency_ms": latency
         }
 
-    # ---------------------------------------
-    # Vector Router (FAISS)
-    # ---------------------------------------
+    # -----------------------------
+    # Vector Router
+    # -----------------------------
 
     if not request.force_llm:
 
@@ -125,11 +124,11 @@ async def improve_text(request: ImproveRequest, req: Request):
 
         if intent:
 
-            increment("router_hits")
-
             template = get_template(intent)
 
             if template:
+
+                increment("router_hits")
 
                 set_cache(cache_key, template)
                 set_semantic_cache(text, template)
@@ -148,9 +147,9 @@ async def improve_text(request: ImproveRequest, req: Request):
                     "source": "vector_router"
                 }
 
-    # ---------------------------------------
+    # -----------------------------
     # LLM Fallback
-    # ---------------------------------------
+    # -----------------------------
 
     increment("llm_calls")
 
@@ -160,6 +159,20 @@ async def improve_text(request: ImproveRequest, req: Request):
 
     set_cache(cache_key, suggestions)
     set_semantic_cache(text, suggestions)
+
+    # Adaptive Learning
+    detected_intent = search_intent(text)
+
+    if not detected_intent:
+
+        if "sick" in text.lower() or "fever" in text.lower():
+            learn_new_example(text, "sick_leave")
+
+        elif "family" in text.lower() or "function" in text.lower():
+            learn_new_example(text, "family_leave")
+
+        elif "meeting" in text.lower():
+            learn_new_example(text, "meeting_absence")
 
     latency = int((time.time() - start) * 1000)
 
