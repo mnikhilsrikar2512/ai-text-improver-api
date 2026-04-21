@@ -1,12 +1,14 @@
-# AI Text Improvement API
+# AI Text Improver API
 
-A production-ready **FastAPI service** that improves short workplace messages such as leave reasons, explanations, and internal communication.
+An AI-powered backend application that enhances user-provided text by improving grammar, clarity, tone, and overall readability.
 
-The system is designed for **low latency, high reliability, and minimal AI usage** using a multi-layer routing pipeline that avoids unnecessary LLM calls.
+## 🧠 How It Works
 
-This API is intended for integration with enterprise portals such as **HR systems, leave management tools, or internal .NET applications**.
-
----
+The system processes user input text and applies NLP-based transformations to:
+1. Detect grammatical issues  
+2. Improve sentence structure  
+3. Adjust tone and readability  
+4. Return optimized output  
 
 # Features
 
