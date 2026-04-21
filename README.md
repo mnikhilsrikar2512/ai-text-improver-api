@@ -25,6 +25,13 @@ The system processes user input text and applies NLP-based transformations to:
 - Latency tracking
 - Swagger API documentation
 
+## 📌 Use Cases
+
+- AI assistants  
+- Customer support automation  
+- Knowledge base search  
+- Content enhancement tools  
+
 ---
 
 # Architecture
